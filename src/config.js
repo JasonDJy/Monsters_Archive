@@ -13,7 +13,7 @@
  * - Sinon : la valeur de secours ci-dessous, à remplacer par VOTRE URL MockAPI.
  */
 export const API_URL =
-  import.meta.env.VITE_API_URL ?? "https://XXXXXXXXXXXXXXXX.mockapi.io/api/v1";
+  import.meta.env.VITE_API_URL ?? "https://6aba56175b549d818d624c13.mockapi.io/";
 
 // Bornes de validation définies dans le cahier des charges
 export const DANGER_MIN = 1;
