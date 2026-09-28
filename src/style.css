@@ -1,0 +1,147 @@
+/* ==========================================================================
+   Styles du gabarit Monster Archive (repris tels quels de monsters_template.html)
+   ========================================================================== */
+
+:root {
+  --lagoon: #0c1c19;
+  --murk: #1d3a33;
+  --jade: #3f7566;
+  --pearl: #efeae0;
+  --silver: #b9b8b0;
+  --gold: #b8955a;
+  --lipstick: #a8131e;
+}
+body {
+  font-family: "Josefin Sans", system-ui, sans-serif;
+  font-weight: 300;
+  color: var(--pearl);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(63, 117, 102, 0.35), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.8), transparent 60%),
+    var(--lagoon);
+  background-attachment: fixed;
+}
+
+/* Grain de pellicule */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Le titre : marquee argentée avec reflet d'eau */
+.marquee {
+  font-family: "Limelight", Georgia, serif;
+  line-height: 1;
+  background: linear-gradient(100deg, #8d8c85 20%, #f7f4ec 45%, #8d8c85 70%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 7s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%,
+  100% {
+    background-position: 100% 0;
+  }
+  50% {
+    background-position: 0% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
+.deco-frame {
+  border: 1px solid var(--gold);
+  outline: 1px solid rgba(184, 149, 90, 0.4);
+  outline-offset: 5px;
+}
+.display {
+  font-family: "Limelight", Georgia, serif;
+  font-weight: 400;
+}
+
+.field {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(12, 28, 25, 0.7);
+  color: var(--pearl);
+  border: 1px solid var(--jade);
+  border-radius: 2px;
+  font-weight: 400;
+}
+.field::placeholder {
+  color: rgba(185, 184, 176, 0.55);
+}
+.field option {
+  background: var(--lagoon);
+}
+.field:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+.btn {
+  border-radius: 2px;
+  font-weight: 600;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+.btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+.btn-gold {
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+.btn-gold:hover {
+  background: var(--gold);
+  color: var(--lagoon);
+}
+.btn-lipstick {
+  background: var(--lipstick);
+  color: var(--pearl);
+}
+.btn-lipstick:hover {
+  background: #c41d29;
+}
+.btn-jade {
+  background: var(--jade);
+  color: var(--pearl);
+}
+.btn-jade:hover {
+  background: #4f8a79;
+}
+
+.monsters-table th {
+  font-weight: 600;
+  color: var(--gold);
+}
+.monsters-table thead a:hover {
+  color: var(--pearl);
+}
+.monsters-table tbody tr {
+  border-top: 1px solid rgba(63, 117, 102, 0.4);
+}
+.monsters-table tbody tr:nth-of-type(even) {
+  background: rgba(239, 234, 224, 0.03);
+}
+
+/* Affichage conditionnel : NE PAS MODIFIER */
+.monsters-table tr:not(.isEditing) .isEditing-visible {
+  display: none;
+}
+.monsters-table tr.isEditing .isEditing-hidden {
+  display: none;
+}

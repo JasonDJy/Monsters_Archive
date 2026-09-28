@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Monster Archive</title>
+
+    <!-- Tailwind via CDN : conservé tel que fourni dans le gabarit -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Polices Google (Limelight pour les titres, Josefin Sans pour le texte) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Limelight&family=Josefin+Sans:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome (icônes des boutons crayon / crâne / check) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!--
+      Le CSS du gabarit (ancien bloc <style>) vit maintenant dans src/style.css.
+      Il est importé depuis src/main.js : Vite le traite et l'inclut au build.
+    -->
+  </head>
+  <body class="min-h-screen py-10 px-4">
+    <div id="app" class="max-w-6xl mx-auto">
+      <!-- En-tête marquee (statique, identique au gabarit) -->
+      <header class="text-center mb-10">
+        <p class="text-[var(--silver)] tracking-widest text-sm">A creature feature archive</p>
+        <h1 class="marquee text-6xl md:text-8xl my-3">Monster Archive</h1>
+        <p class="text-[var(--silver)] italic">
+          They rose from the deep between 1950 and 1969. Someone had to keep the records.
+        </p>
+      </header>
+
+      <!--
+        Point de montage : le composant MonstersList injecte ici
+        son template (formulaire à gauche + archive à droite).
+      -->
+      <main id="monsters-app" class="flex flex-col md:flex-row gap-8"></main>
+
+      <footer class="text-center text-[var(--silver)] text-sm mt-10 italic">
+        &copy; EAFC 2026 Monster Archive. No creature was harmed during development.
+      </footer>
+    </div>
+
+    <!-- Point d'entrée JS : Vite gère les modules ES6 (type="module") -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
