@@ -1,0 +1,11 @@
+# Dépendances (réinstallables avec `npm install`)
+node_modules
+
+# Version de production (régénérable avec `npm run build`)
+dist
+
+# Fichiers système
+.DS_Store
+
+# Variables d'environnement locales
+.env.local
