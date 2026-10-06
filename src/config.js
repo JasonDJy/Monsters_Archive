@@ -1,22 +1,25 @@
 // ============================================================================
-// config.js — Constantes partagées par toute l'application
+// config.js — CONSTANTES DE L'APPLICATION
 // ----------------------------------------------------------------------------
-// Un seul endroit pour les valeurs "magiques" : si le cahier des charges change
-// (ex. niveau de danger de 1 à 10), on modifie ici et rien d'autre.
+// Un seul endroit pour les valeurs du cahier des charges : si une règle change,
+// on la modifie ici et nulle part ailleurs.
 // ============================================================================
 
-/**
- * URL de base de l'API MockAPI (SANS "/monsters" à la fin).
- *
- * - En priorité : la variable d'environnement VITE_API_URL définie dans le
- *   fichier ".env" (voir ".env.example"). Vite l'expose via `import.meta.env`.
- * - Sinon : la valeur de secours ci-dessous, à remplacer par VOTRE URL MockAPI.
- */
-export const API_URL =
-  import.meta.env.VITE_API_URL ?? "https://6aba56175b549d818d624c13.mockapi.io/";
+// URL de base de l'API MockAPI (sans "/monsters" : DB.js l'ajoute)
+export const API_URL = "https://6aba56175b549d818d624c13.mockapi.io/api/v1";
 
-// Bornes de validation définies dans le cahier des charges
+// Bornes de validation
 export const DANGER_MIN = 1;
 export const DANGER_MAX = 5;
 export const YEAR_MIN = 1950;
 export const YEAR_MAX = 1969;
+
+// Types proposés dans les <select> (formulaire d'ajout ET mode édition)
+export const MONSTER_TYPES = [
+  "Giant reptile",
+  "Alien",
+  "Mutant",
+  "Giant insect",
+  "Robot",
+  "Deep-sea creature",
+];

@@ -1,7 +1,7 @@
 # 🦖 Monster Archive
 
-Application de gestion d'un bestiaire de créatures de films de série B (1950-1969).
-**Vanilla JavaScript moderne** (classes ES6, modules) + **Vite** + **API REST MockAPI**.
+Gestion d'un bestiaire de créatures de films de série B (1950-1969).
+**JavaScript moderne** (classes ES6, modules, champs privés) + **Vite** + **API REST MockAPI**.
 
 ## Installation
 
@@ -13,46 +13,35 @@ npm run build            # version de production dans /dist
 npm run preview          # tester la version de production
 ```
 
-## Mise en place de MockAPI
+## MockAPI
 
-1. Créer un projet sur [mockapi.io](https://mockapi.io).
-2. Ajouter une ressource `monsters` avec les champs :
-   `name` (String), `type` (String), `dangerLevel` (Number), `year` (Number).
-   (`id` est généré automatiquement.)
-3. Copier l'URL de base du projet (ex. `https://xxxx.mockapi.io/api/v1`) dans `.env`
-   (variable `VITE_API_URL`) — **sans** `/monsters` à la fin.
+Ressource `monsters` avec les champs `name` (String), `type` (String),
+`dangerLevel` (Number), `year` (Number). L'`id` est généré automatiquement.
+`VITE_API_URL` = URL de base du projet (ex. `https://xxxx.mockapi.io/api/v1`), **sans** `/monsters`.
 
-## Architecture
+## Architecture (un dossier par composant : `Classe.js` + `template.js`)
 
 ```
-index.html                    Page + point de montage <main id="monsters-app">
+index.html                         Page + point de montage <main id="monsters-app">
+vite.config.js                     Config Vite (base relative pour le build)
 src/
-├── main.js                   Point d'entrée : assemble API + liste
-├── config.js                 URL de l'API et bornes de validation
-├── style.css                 CSS du gabarit
-├── api/
-│   └── MonstersApi.js        Accès aux données (GET / POST / PUT / DELETE)
-├── components/
-│   ├── Monster.js            UNE créature : données, ligne <tr>, édition, sauvegarde, suppression
-│   └── MonstersList.js       LA liste : chargement, ajout, compteur, recherche, tri
-└── templates/
-    ├── monster.html          Template de la ligne (un <tr>)
-    └── monsters-list.html    Template du formulaire + tableau
+├── main.js                        Point d'entrée : DB.getMonsters() puis new MonstersList().render()
+├── DB.js                          Accès à l'API (classe statique : GET / POST / PUT / DELETE)
+├── config.js                      URL de l'API, bornes de validation, types de créatures
+├── utils.js                       escapeHtml (anti-XSS) et getTypeOptions
+├── style.css                      CSS du gabarit
+└── components/
+    ├── monster/
+    │   ├── Monster.js             UNE créature : données, validate(), render()
+    │   └── template.js            getTemplate(monster) -> HTML d'un <tr>
+    └── monsters-list/
+        ├── MonstersList.js        LA liste : ajout, compteur, recherche, tri, actions des lignes
+        └── template.js            getTemplate() -> HTML du formulaire + tableau
 ```
 
-| Fichier | Responsabilité unique |
-|---|---|
-| `MonstersApi` | Parler à l'API. Ne connaît pas le DOM. |
-| `Monster` | Une créature. Prévient la liste via les callbacks `onUpdate` / `onDelete`. |
-| `MonstersList` | L'ensemble des créatures. Source de vérité : `monsters`, `searchTerm`, `sortKey`, `sortDirection`. |
+## Choix techniques
 
-## Fonctionnalités
-
-- Affichage, ajout, modification, suppression (répercutés dans l'API)
-- Compteur dynamique du nombre total de créatures
-- **Bonus** : recherche par nom / type, tri par colonne (2e clic = ordre inverse), niveau de danger en ☠️
-
-## Choix techniques (DM2)
-
-- **Vite** : serveur de dev rapide, modules ES natifs, `?raw` pour importer les templates HTML, build de production minifié.
-- **Tailwind, polices et Font Awesome restent en CDN**, comme dans le gabarit fourni.
+- **Vite** : serveur de dev rapide, modules ES, build de production minifié.
+- **Délégation d'événements** : un écouteur par zone (formulaire, `<thead>`, `<tbody>`), les boutons portent `data-action`.
+- **Templates en fonctions JS** : valeurs échappées avec `escapeHtml` car injectées via `innerHTML`.
+- Tailwind, polices et Font Awesome restent en CDN, comme dans le gabarit fourni.
