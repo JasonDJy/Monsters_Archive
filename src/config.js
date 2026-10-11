@@ -1,16 +1,18 @@
 // ============================================================================
 // config.js — CONSTANTES DE L'APPLICATION
 // ----------------------------------------------------------------------------
-// Un seul endroit pour les valeurs du cahier des charges : si une règle change,
-// on la modifie ici et nulle part ailleurs.
+// Les valeurs "fixes" du cahier des charges, regroupées à un seul endroit.
+// Si une valeur change, on la modifie ICI et nulle part ailleurs.
 // ============================================================================
 
-// URL de base de l'API MockAPI (sans "/monsters" : DB.js l'ajoute)
-export const API_URL = "https://6aba56175b549d818d624c13.mockapi.io/api/v1";
+// Adresse de notre projet MockAPI (avec le "/" à la fin)
+export const API_URL = "https://6aba56175b549d818d624c13.mockapi.io/api/v1/";
 
-// Bornes de validation
+// Niveau de danger : de 1 à 5
 export const DANGER_MIN = 1;
 export const DANGER_MAX = 5;
+
+// Année de sortie du film : de 1950 à 1969
 export const YEAR_MIN = 1950;
 export const YEAR_MAX = 1969;
 

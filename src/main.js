@@ -1,19 +1,17 @@
 // ============================================================================
-// main.js — POINT D'ENTRÉE
+// main.js — POINT D'ENTRÉE DE L'APPLICATION
 // ----------------------------------------------------------------------------
-// 1) Récupère les créatures depuis l'API.
-// 2) Instancie la liste et lui demande de s'afficher dans #monsters-app.
+// On crée la liste en lui donnant :
+//   - el     : l'élément du DOM où elle doit s'afficher
+//   - apiURL : l'adresse de l'API
 // ============================================================================
 
-import "./style.css"; // importé ici pour que Vite l'intègre au build
+// Le CSS est importé ici pour que Vite l'intègre dans la version de production
+import "./style.css";
 import MonstersList from "./components/monsters-list/MonstersList.js";
-import DB from "./DB.js";
+import { API_URL } from "./config.js";
 
-try {
-  const monsters = await DB.getMonsters();
-  new MonstersList({ monsters }).render("#monsters-app");
-} catch (error) {
-  console.error(error);
-  document.querySelector("#monsters-app").textContent =
-    "Could not reach the archive. Please try again later.";
-}
+new MonstersList({
+  el: "#monsters-app",
+  apiURL: API_URL,
+});

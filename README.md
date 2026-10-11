@@ -1,47 +1,56 @@
 # 🦖 Monster Archive
 
 Gestion d'un bestiaire de créatures de films de série B (1950-1969).
-**JavaScript moderne** (classes ES6, modules, champs privés) + **Vite** + **API REST MockAPI**.
+**JavaScript moderne en composants** (classes ES6, modules) + **Vite** + **API REST MockAPI**.
 
 ## Installation
 
 ```bash
-npm install
-cp .env.example .env     # puis mettre l'URL de VOTRE projet MockAPI dans .env
-npm run dev              # serveur de développement
-npm run build            # version de production dans /dist
-npm run preview          # tester la version de production
+npm install          # installe Vite
+npm run dev          # serveur de développement
+npm run build        # version de production dans /dist
+npm run preview      # tester la version de production
 ```
 
 ## MockAPI
 
 Ressource `monsters` avec les champs `name` (String), `type` (String),
 `dangerLevel` (Number), `year` (Number). L'`id` est généré automatiquement.
-`VITE_API_URL` = URL de base du projet (ex. `https://xxxx.mockapi.io/api/v1`), **sans** `/monsters`.
+L'URL de base du projet se trouve dans `src/config.js` (`API_URL`, **sans** `/monsters`).
 
 ## Architecture (un dossier par composant : `Classe.js` + `template.js`)
 
 ```
 index.html                         Page + point de montage <main id="monsters-app">
 vite.config.js                     Config Vite (base relative pour le build)
+documents/                         Gabarit HTML et consignes fournis
 src/
-├── main.js                        Point d'entrée : DB.getMonsters() puis new MonstersList().render()
-├── DB.js                          Accès à l'API (classe statique : GET / POST / PUT / DELETE)
+├── main.js                        Démarrage : new MonstersList({ el, apiURL })
+├── DB.js                          Parle à l'API : setApiURL, findAll, create, updateOne, deleteOneById
 ├── config.js                      URL de l'API, bornes de validation, types de créatures
-├── utils.js                       escapeHtml (anti-XSS) et getTypeOptions
 ├── style.css                      CSS du gabarit
 └── components/
     ├── monster/
-    │   ├── Monster.js             UNE créature : données, validate(), render()
-    │   └── template.js            getTemplate(monster) -> HTML d'un <tr>
+    │   ├── Monster.js             UNE créature : render(), initEvents(), update(), dispatch()
+    │   └── template.js            HTML d'un <tr>
     └── monsters-list/
-        ├── MonstersList.js        LA liste : ajout, compteur, recherche, tri, actions des lignes
-        └── template.js            getTemplate() -> HTML du formulaire + tableau
+        ├── MonstersList.js        Le chef d'orchestre : tableau, DOM, DB
+        └── template.js            HTML du formulaire + tableau
 ```
 
-## Choix techniques
+## Fonctionnement
 
-- **Vite** : serveur de dev rapide, modules ES, build de production minifié.
-- **Délégation d'événements** : un écouteur par zone (formulaire, `<thead>`, `<tbody>`), les boutons portent `data-action`.
-- **Templates en fonctions JS** : valeurs échappées avec `escapeHtml` car injectées via `innerHTML`.
+- **Ordre des actions** : DB → tableau → DOM.
+- **`Monster.render()`** crée son `<tr>` via un `<template>`, ajoute ses événements et le retourne :
+  c'est `MonstersList` qui décide où le placer.
+- **Événements personnalisés** : `Monster` ne connaît pas son parent. Il émet `monster:updated`
+  ou `monster:deleted` (`CustomEvent` avec `bubbles: true`) et `MonstersList` écoute sur le `<tbody>`.
+- **Calcul / affichage séparés** : `getMonstersCount()` calcule, `renderMonstersCount()` affiche.
+- **Mode édition** : ajout/retrait de la classe `isEditing` sur le `<tr>` (CSS du gabarit).
 - Tailwind, polices et Font Awesome restent en CDN, comme dans le gabarit fourni.
+
+## Bonus réalisés
+
+- 🔍 Recherche par nom ou type (`getVisibleMonsters()`)
+- 🔃 Tri en cliquant sur les en-têtes, 2e clic = ordre inversé (`sortBy()`)
+- ☠️ Niveau de danger en têtes de mort (`getDangerSkulls()`)

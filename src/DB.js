@@ -1,60 +1,80 @@
 // ============================================================================
-// DB.js — ACCÈS AUX DONNÉES (API REST MockAPI)
+// DB.js — LA COUCHE DONNÉES
 // ----------------------------------------------------------------------------
-// Classe statique : on appelle directement DB.create(...), sans "new".
-// Ne connaît pas le DOM : reçoit et renvoie des objets JS simples.
+// Elle sait parler à l'API. Elle ne sait rien afficher, elle ne connaît pas
+// le DOM. (C'est le "facteur" : il fait les allers-retours avec le serveur.)
 //
-//   getMonsters() -> GET    /monsters
-//   create()      -> POST   /monsters
-//   update()      -> PUT    /monsters/:id
-//   remove()      -> DELETE /monsters/:id
+// Toutes les méthodes sont "static" : pas besoin de faire "new DB()",
+// on les utilise directement : DB.findAll()
+//
+//   findAll()        -> GET    monsters       (lire toutes les créatures)
+//   create()         -> POST   monsters       (ajouter une créature)
+//   updateOne()      -> PUT    monsters/:id   (modifier une créature)
+//   deleteOneById()  -> DELETE monsters/:id   (supprimer une créature)
 // ============================================================================
 
-import { API_URL } from "./config.js";
-
 export default class DB {
-  static #endpoint = `${API_URL}/monsters`;
+  /**
+   * Mémorise l'URL de l'API (appelée une seule fois par MonstersList).
+   * @param {string} url
+   */
+  static setApiURL(url) {
+    this.apiURL = url;
+  }
 
   /**
-   * Méthode privée commune aux 4 requêtes : appel fetch + gestion d'erreur.
-   * fetch ne rejette qu'en cas d'erreur RÉSEAU : un 404/500 se teste via response.ok.
-   * @param {string} path Fin de l'URL (ex. "/12"), vide pour toute la collection.
-   * @param {RequestInit} options method, headers, body.
-   * @returns {Promise<any>} Le JSON renvoyé par l'API.
+   * Récupère toutes les créatures.
+   * await : on attend la réponse du serveur avant de continuer.
+   * @returns {Promise<Object[]>}
    */
-  static async #request(path = "", options = {}) {
-    const response = await fetch(`${DB.#endpoint}${path}`, options);
-    if (!response.ok) {
-      throw new Error(`Erreur API : ${response.status} ${response.statusText}`);
-    }
+  static async findAll() {
+    const response = await fetch(this.apiURL + "monsters");
     return response.json();
   }
 
-  /** @returns {Promise<Object[]>} Toutes les créatures. */
-  static getMonsters() {
-    return DB.#request();
-  }
-
-  /** @returns {Promise<Object>} La créature créée, AVEC l'id généré par MockAPI. */
-  static create(data) {
-    return DB.#request("", {
+  /**
+   * Ajoute une créature. Le serveur renvoie la créature créée AVEC son id.
+   * @param {Object} data { name, type, dangerLevel, year }
+   * @returns {Promise<Object>}
+   */
+  static async create(data) {
+    const response = await fetch(this.apiURL + "monsters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      // JSON.stringify : objet JavaScript -> texte JSON (format attendu par l'API)
       body: JSON.stringify(data),
     });
+    return response.json();
   }
 
-  /** @returns {Promise<Object>} La créature modifiée. */
-  static update(id, data) {
-    return DB.#request(`/${id}`, {
+  /**
+   * Modifie une créature existante.
+   * @param {Monster} monster La créature (avec ses nouvelles valeurs)
+   * @returns {Promise<Object>}
+   */
+  static async updateOne(monster) {
+    const response = await fetch(this.apiURL + "monsters/" + monster.id, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        name: monster.name,
+        type: monster.type,
+        dangerLevel: monster.dangerLevel,
+        year: monster.year,
+      }),
     });
+    return response.json();
   }
 
-  /** @returns {Promise<Object>} La créature supprimée. */
-  static remove(id) {
-    return DB.#request(`/${id}`, { method: "DELETE" });
+  /**
+   * Supprime une créature.
+   * @param {string} id
+   * @returns {Promise<Object>}
+   */
+  static async deleteOneById(id) {
+    const response = await fetch(this.apiURL + "monsters/" + id, {
+      method: "DELETE",
+    });
+    return response.json();
   }
 }

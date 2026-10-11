@@ -1,51 +1,36 @@
 // ============================================================================
 // monster/template.js — HTML D'UNE CRÉATURE
 // ----------------------------------------------------------------------------
-// Une ligne <tr> reprenant la structure du gabarit. Chaque cellule contient :
-//   - un <span> visible en mode lecture (classe isEditing-hidden)
-//   - un champ  visible en mode édition (classe isEditing-visible)
-// Le CSS du gabarit bascule de l'un à l'autre via la classe "isEditing" du <tr>.
-// Seul ajout au gabarit : data-id, pour retrouver la créature au clic.
+// Une fonction qui reçoit une créature et retourne le HTML d'une ligne <tr>.
+// Chaque cellule contient :
+//   - un <span> visible en mode lecture   (classe "isEditing-hidden")
+//   - un champ  visible en mode édition   (classe "isEditing-visible")
+// Le CSS du gabarit affiche l'un ou l'autre selon la classe "isEditing" du <tr>.
 // ============================================================================
 
 import { DANGER_MIN, DANGER_MAX, YEAR_MIN, YEAR_MAX, MONSTER_TYPES } from "../../config.js";
 
-/**
- * Neutralise les caractères HTML d'un texte saisi par l'utilisateur.
- * Indispensable car le template est injecté via innerHTML (risque XSS).
- */
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-/** @param {import("./Monster.js").default} monster */
 export default function getTemplate(monster) {
-  // <option> du <select>, avec le type actuel présélectionné
-  const typeOptions = MONSTER_TYPES.map(
-    (type) => `<option${type === monster.type ? " selected" : ""}>${type}</option>`,
-  ).join("");
-
   return `
-    <tr class="monster-row${monster.isEditing ? " isEditing" : ""}" data-id="${escapeHtml(monster.id)}">
+    <tr class="monster-row" data-id="${monster.id}">
       <td class="p-3 font-semibold">
-        <span class="isEditing-hidden">${escapeHtml(monster.name)}</span>
-        <input type="text" class="input-name isEditing-visible field" value="${escapeHtml(monster.name)}" />
+        <span class="name-text isEditing-hidden">${monster.name}</span>
+        <input type="text" class="input-name isEditing-visible field" value="${monster.name}" />
       </td>
       <td class="p-3">
-        <span class="isEditing-hidden">${escapeHtml(monster.type)}</span>
-        <select class="input-type isEditing-visible field">${typeOptions}</select>
+        <span class="type-text isEditing-hidden">${monster.type}</span>
+        <select class="input-type isEditing-visible field">
+          <!-- Une <option> par type ; celui de la créature est "selected" -->
+          ${MONSTER_TYPES.map((type) => `<option ${type === monster.type ? "selected" : ""}>${type}</option>`).join("")}
+        </select>
       </td>
       <td class="p-3 whitespace-nowrap">
-        <span class="isEditing-hidden" title="Danger level ${monster.dangerLevel}">${monster.dangerSkulls}</span>
+        <!-- Bonus : autant de ☠️ que le niveau de danger -->
+        <span class="danger-text isEditing-hidden" title="Danger level ${monster.dangerLevel}">${monster.getDangerSkulls()}</span>
         <input type="number" min="${DANGER_MIN}" max="${DANGER_MAX}" class="input-danger isEditing-visible field" value="${monster.dangerLevel}" />
       </td>
       <td class="p-3">
-        <span class="isEditing-hidden">${monster.year}</span>
+        <span class="year-text isEditing-hidden">${monster.year}</span>
         <input type="number" min="${YEAR_MIN}" max="${YEAR_MAX}" class="input-year isEditing-visible field" value="${monster.year}" />
       </td>
       <td class="p-3">

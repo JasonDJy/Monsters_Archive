@@ -1,264 +1,205 @@
 // ============================================================================
-// MonstersList.js — COMPOSANT "LA LISTE DES CRÉATURES"
+// MonstersList.js — COMPOSANT "LA LISTE DES CRÉATURES" (le chef d'orchestre)
 // ----------------------------------------------------------------------------
-// Gère le formulaire d'ajout, le compteur, la recherche, le tri et les actions
-// des lignes (modifier / enregistrer / supprimer).
+// Il charge les créatures, les affiche et gère toutes les actions.
+// C'est le SEUL composant qui parle à l'API (via DB.js).
 //
-// Réactivité : les DONNÉES (monsters, searchTerm, sortKey, sortDirection) sont
-// la source de vérité. Dès qu'une donnée change, #refresh() redessine le
-// tableau, le compteur, les flèches de tri et le message d'état.
+// Ordre toujours respecté pour une action : DB -> tableau -> DOM
 // ============================================================================
 
-import Monster from "../monster/Monster.js";
 import DB from "../../DB.js";
+import Monster from "../monster/Monster.js";
 import getTemplate from "./template.js";
 
 export default class MonstersList {
-  // --------------------------------------------------------------------------
-  // PROPRIÉTÉS DE BASE
-  // --------------------------------------------------------------------------
-  monsters = []; // instances de Monster
-  searchTerm = "";
-  sortKey = null; // "name" | "type" | "dangerLevel" | "year" | null
-  sortDirection = "asc"; // "asc" | "desc"
+  /**
+   * @param {Object} data { el: sélecteur de l'élément cible, apiURL: adresse de l'API }
+   */
+  constructor(data) {
+    this.domElt = document.querySelector(data.el);
+    DB.setApiURL(data.apiURL);
+    this.monsters = []; // tableau d'objets Monster
+    this.searchTerm = ""; // bonus : texte de la recherche
+    this.sortKey = ""; // bonus : colonne de tri ("" = pas de tri)
+    this.sortAscending = true; // bonus : true = croissant, false = décroissant
+    this.loadMonsters();
+  }
 
-  #refs; // raccourcis vers les éléments du template
-
-  /** @param {{monsters?: Object[]}} data Données brutes venant de l'API. */
-  constructor({ monsters = [] } = {}) {
-    this.monsters = monsters.map((row) => new Monster(row));
+  /** Récupère les créatures depuis l'API puis affiche l'application. */
+  async loadMonsters() {
+    const monsters = await DB.findAll();
+    // On transforme chaque objet JSON brut en une vraie instance de Monster
+    this.monsters = monsters.map((monster) => new Monster(monster));
+    this.render();
   }
 
   // --------------------------------------------------------------------------
-  // PROPRIÉTÉS CALCULÉES (computed : dérivées des propriétés de base)
+  // CALCULS (ne touchent pas au DOM)
   // --------------------------------------------------------------------------
 
-  /** Nombre TOTAL de créatures (indépendant de la recherche). */
-  get count() {
+  /** @returns {number} Le nombre TOTAL de créatures. */
+  getMonstersCount() {
     return this.monsters.length;
   }
 
-  /** Créatures à afficher : filtrées par la recherche, puis triées. */
-  get visibleMonsters() {
-    const term = this.searchTerm.trim().toLowerCase();
+  /**
+   * Bonus : les créatures à afficher, filtrées par la recherche puis triées.
+   * @returns {Monster[]}
+   */
+  getVisibleMonsters() {
+    // toLowerCase() : "alien" trouve aussi "Alien"
+    const term = this.searchTerm.toLowerCase();
 
-    // filter() renvoie un NOUVEAU tableau : this.monsters n'est pas modifié
-    const filtered = this.monsters.filter(
+    // On garde les créatures dont le nom OU le type contient le texte cherché
+    const result = this.monsters.filter(
       (monster) =>
         monster.name.toLowerCase().includes(term) || monster.type.toLowerCase().includes(term),
     );
 
-    if (this.sortKey) {
-      const direction = this.sortDirection === "asc" ? 1 : -1;
-      filtered.sort((a, b) => {
-        const valueA = a[this.sortKey];
-        const valueB = b[this.sortKey];
-        // Nombres : soustraction. Textes : comparaison alphabétique.
-        const result =
-          typeof valueA === "number" ? valueA - valueB : String(valueA).localeCompare(valueB);
-        return result * direction;
+    // Tri seulement si une colonne a été choisie
+    if (this.sortKey !== "") {
+      result.sort((a, b) => {
+        // a[this.sortKey] lit la propriété choisie (ex : a["year"] = a.year)
+        if (a[this.sortKey] < b[this.sortKey]) return this.sortAscending ? -1 : 1;
+        if (a[this.sortKey] > b[this.sortKey]) return this.sortAscending ? 1 : -1;
+        return 0;
       });
     }
-    return filtered;
+    return result;
   }
 
   // --------------------------------------------------------------------------
-  // AFFICHAGE
+  // AFFICHAGE (touche au DOM)
   // --------------------------------------------------------------------------
 
-  /**
-   * Injecte le template, mémorise les éléments utiles, branche les événements
-   * puis affiche les lignes.
-   * @param {string} selector Sélecteur CSS de l'élément de montage.
-   */
-  render(selector) {
-    const root = document.querySelector(selector);
-    root.innerHTML = getTemplate();
-
-    const q = (sel) => root.querySelector(sel);
-    this.#refs = {
-      form: q(".add-form"),
-      newName: q(".new-name"),
-      newType: q(".new-type"),
-      newDanger: q(".new-danger"),
-      newYear: q(".new-year"),
-      count: q(".monsters-count"),
-      search: q(".search-input"),
-      thead: q(".monsters-table thead"),
-      body: q(".monsters-body"),
-      status: q(".status"),
-    };
-
-    this.#bindEvents();
-    this.#refresh();
-    return this;
+  /** Affiche l'application complète (une seule fois, au chargement). */
+  render() {
+    this.domElt.innerHTML = getTemplate();
+    this.listDomElt = this.domElt.querySelector(".monsters-body");
+    this.renderList();
+    this.renderMonstersCount();
+    this.initEvents();
   }
 
-  /** Redessine tout ce qui dépend des données. */
-  #refresh() {
-    const r = this.#refs;
-    const visible = this.visibleMonsters;
+  /** Vide le tableau puis y ajoute le <tr> de chaque créature visible. */
+  renderList() {
+    this.listDomElt.innerHTML = "";
+    this.getVisibleMonsters().forEach((monster) => this.listDomElt.append(monster.render()));
+  }
 
-    r.body.innerHTML = visible.map((monster) => monster.render()).join("");
-    r.count.textContent = this.count;
+  /** Affiche le nombre total de créatures. */
+  renderMonstersCount() {
+    this.domElt.querySelector(".monsters-count").innerText = this.getMonstersCount();
+  }
 
-    // Flèche ▲ / ▼ uniquement sur la colonne triée
-    const arrow = this.sortDirection === "asc" ? "▲" : "▼";
-    r.thead.querySelectorAll("a[data-sort]").forEach((link) => {
-      link.querySelector(".sort-indicator").textContent =
-        link.dataset.sort === this.sortKey ? arrow : "";
+  // --------------------------------------------------------------------------
+  // ÉVÉNEMENTS
+  // Les fonctions fléchées () => gardent "this" = la liste.
+  // --------------------------------------------------------------------------
+
+  initEvents() {
+    // Bouton "Add to the archive"
+    this.domElt.querySelector(".btn-add").addEventListener("click", () => {
+      this.addMonster();
     });
 
-    // Message d'état : uniquement si aucune ligne n'est affichée
-    if (visible.length > 0) this.#showStatus("");
-    else if (this.count === 0) this.#showStatus("The archive is empty. File your first creature!");
-    else this.#showStatus("No creature matches your search.");
-  }
-
-  /** Affiche le message, ou masque la zone si le message est vide. */
-  #showStatus(message) {
-    this.#refs.status.textContent = message;
-    this.#refs.status.classList.toggle("hidden", message === "");
-  }
-
-  // --------------------------------------------------------------------------
-  // ÉVÉNEMENTS (délégation : un écouteur par zone, pas un par bouton,
-  // car les lignes sont recréées à chaque #refresh())
-  // --------------------------------------------------------------------------
-
-  #bindEvents() {
-    const r = this.#refs;
-
-    r.form.addEventListener("submit", (event) => this.#handleAdd(event));
-
-    r.search.addEventListener("input", (event) => {
-      this.searchTerm = event.target.value;
-      this.#refresh();
+    // Bonus : recherche, à chaque lettre tapée
+    this.domElt.querySelector(".search-input").addEventListener("input", (e) => {
+      this.searchTerm = e.target.value;
+      this.renderList();
     });
 
-    r.thead.addEventListener("click", (event) => {
-      const link = event.target.closest("a[data-sort]");
-      if (!link) return;
-      event.preventDefault(); // empêche href="#" de remonter en haut de page
-      this.#sortBy(link.dataset.sort);
+    // Bonus : tri, au clic sur un en-tête de colonne
+    this.domElt.querySelectorAll(".sort-link").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault(); // empêche le lien "#" de remonter en haut de la page
+        this.sortBy(link.dataset.sort); // dataset.sort lit l'attribut data-sort
+      });
     });
 
-    r.body.addEventListener("click", (event) => this.#handleRowClick(event));
-  }
-
-  /** Retrouve l'objet Monster correspondant à la ligne <tr> qui contient `target`. */
-  #getMonsterFrom(target) {
-    const row = target.closest("tr[data-id]");
-    if (!row) return null;
-    return this.monsters.find((monster) => String(monster.id) === row.dataset.id) ?? null;
-  }
-
-  /** Clic dans le tableau : la classe du bouton (gabarit) indique l'action. */
-  #handleRowClick(event) {
-    const button = event.target.closest("button");
-    const monster = button && this.#getMonsterFrom(button);
-    if (!monster) return;
-
-    if (button.classList.contains("btn-edit")) this.#startEditing(monster);
-    if (button.classList.contains("btn-check")) this.#save(monster, button.closest("tr"));
-    if (button.classList.contains("btn-delete")) this.#remove(monster);
+    // Événements émis par les Monster (ils "remontent" jusqu'au <tbody>)
+    this.listDomElt.addEventListener("monster:updated", async (e) => {
+      await this.updateOne(e.detail.monster);
+    });
+    this.listDomElt.addEventListener("monster:deleted", async (e) => {
+      await this.deleteOneById(e.detail.id);
+    });
   }
 
   // --------------------------------------------------------------------------
-  // ACTIONS (modifient l'API PUIS les données locales)
+  // ACTIONS (CRUD)
   // --------------------------------------------------------------------------
 
-  /** Ajout d'une créature depuis le formulaire. */
-  async #handleAdd(event) {
-    event.preventDefault(); // empêche le rechargement de la page
+  /** Ajoute une créature à partir du formulaire. */
+  async addMonster() {
+    const nameInput = this.domElt.querySelector(".new-name");
+    const dangerInput = this.domElt.querySelector(".new-danger");
+    const yearInput = this.domElt.querySelector(".new-year");
 
-    const r = this.#refs;
+    // Les champs renvoient du texte : Number() le transforme en nombre
     const data = {
-      name: r.newName.value.trim(),
-      type: r.newType.value,
-      dangerLevel: Number(r.newDanger.value), // les <input> renvoient du texte
-      year: Number(r.newYear.value),
+      name: nameInput.value.trim(),
+      type: this.domElt.querySelector(".new-type").value,
+      dangerLevel: Number(dangerInput.value),
+      year: Number(yearInput.value),
     };
 
-    const validationError = Monster.validate(data);
-    if (validationError) {
-      alert(validationError);
+    if (!Monster.isValid(data)) {
+      alert("Please check the name, the danger level (1-5) and the year (1950-1969).");
       return;
     }
 
-    try {
-      const created = await DB.create(data); // l'API renvoie la créature AVEC son id
-      this.monsters.push(new Monster(created));
-      r.form.reset();
-      this.#refresh();
-    } catch (error) {
-      console.error(error);
-      alert("Could not add the creature. Please try again.");
-    }
+    // 1) DB : le serveur renvoie la créature avec son id
+    const monster = await DB.create(data);
+    // 2) Tableau
+    this.monsters.push(new Monster(monster));
+    // 3) DOM
+    this.renderList();
+    this.renderMonstersCount();
+
+    // On vide le formulaire
+    nameInput.value = "";
+    dangerInput.value = "";
+    yearInput.value = "";
   }
 
-  /** Passe la ligne en mode édition et place le curseur dans le nom. */
-  #startEditing(monster) {
-    monster.isEditing = true;
-    this.#refresh();
-    this.#refs.body.querySelector(`tr[data-id="${monster.id}"] .input-name`)?.focus();
+  /**
+   * Enregistre une créature modifiée (le Monster a déjà mis à jour
+   * ses propriétés et son affichage).
+   * @param {Monster} monster
+   */
+  async updateOne(monster) {
+    return await DB.updateOne(monster);
   }
 
-  /** Lit les champs d'une ligne en mode édition et renvoie des données typées. */
-  #readRow(row) {
-    const q = (sel) => row.querySelector(sel);
-    return {
-      name: q(".input-name").value.trim(),
-      type: q(".input-type").value,
-      dangerLevel: Number(q(".input-danger").value),
-      year: Number(q(".input-year").value),
-    };
+  /**
+   * Supprime une créature.
+   * @param {string} id
+   */
+  async deleteOneById(id) {
+    // 1) DB
+    await DB.deleteOneById(id);
+    // 2) Tableau : findIndex trouve la position, splice(index, 1) supprime 1 élément
+    this.monsters.splice(
+      this.monsters.findIndex((monster) => monster.id == id),
+      1,
+    );
+    // 3) DOM
+    this.domElt.querySelector(`[data-id='${id}']`).remove();
+    this.renderMonstersCount();
   }
 
-  /** Enregistre les modifications d'une ligne. */
-  async #save(monster, row) {
-    const newData = this.#readRow(row);
-
-    const validationError = Monster.validate(newData);
-    if (validationError) {
-      alert(validationError);
-      return; // on reste en mode édition pour laisser corriger
-    }
-
-    try {
-      // On attend la confirmation de l'API, PUIS on met à jour l'objet et l'affichage
-      const saved = await DB.update(monster.id, newData);
-      monster.update(saved);
-      monster.isEditing = false;
-      this.#refresh();
-    } catch (error) {
-      console.error(error);
-      alert("Could not save the creature. Please try again.");
-    }
-  }
-
-  /** Supprime une créature après confirmation. */
-  async #remove(monster) {
-    if (!confirm(`Delete "${monster.name}" from the archive?`)) return;
-
-    try {
-      await DB.remove(monster.id);
-      this.monsters = this.monsters.filter((m) => m !== monster);
-      this.#refresh();
-    } catch (error) {
-      console.error(error);
-      alert("Could not delete the creature. Please try again.");
-    }
-  }
-
-  /** Trie par la colonne cliquée ; un 2e clic sur la même colonne inverse l'ordre. */
-  #sortBy(key) {
+  /**
+   * Bonus : trie par la colonne cliquée. Un 2e clic inverse l'ordre.
+   * @param {string} key "name", "type", "dangerLevel" ou "year"
+   */
+  sortBy(key) {
     if (this.sortKey === key) {
-      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
+      this.sortAscending = !this.sortAscending; // true devient false et inversement
     } else {
       this.sortKey = key;
-      this.sortDirection = "asc";
+      this.sortAscending = true;
     }
-    this.#refresh();
+    this.renderList();
   }
 }
